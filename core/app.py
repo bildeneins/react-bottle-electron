@@ -1,13 +1,11 @@
 import time
-# import bottle
-from bottle import hook, response, route, run, app, static_file, HTTPResponse, request
+import bottle
+from bottle import hook, response, route, run, app, static_file, HTTPResponse, request, default_app
 import cv2
 import json
- 
 
-# app = bottle.Bottle()
+
 def gen():
-    
     cam = cv2.VideoCapture(0)
     while True:
         # 動画から1フレーム分の画像を読み込み
@@ -20,40 +18,26 @@ def gen():
         # 連続再生されるのでwaitを入れる
         time.sleep(1/60)
 
+
 @route('/')
 def main():
-    return static_file('index.html', root='./')
+    return HTTPResponse(status=200, body=json.dumps("ThisIsResponseText"))
+
 
 @route('/video_feed')
 def video_feed():
     response.content_type = 'multipart/x-mixed-replace;boundary=frame'
     return gen()
 
-@route('/get', method='OPTIONS')
-def support_cors():
-    res = HTTPResponse(status=200, body=None)
-    res.set_header('Access-Control-Allow-Origin', 'http://localhost:3000/')
-    return res
 
-@route('/get', method='GET') 
+@route('/get', method='GET')
 def get():
-    print(request.headers)
     res = HTTPResponse(status=200, body=json.dumps("get ok"))
     res.set_header('Content-Type', 'application/json')
     res.set_header('Access-Control-Allow-Origin', 'http://localhost:3000/')
     return res
 
-@route('/post', method='OPTIONS')
-def support_cors():
-    res = HTTPResponse(status=200, body=None)
-    res.set_header('Access-Control-Allow-Origin', 'http://localhost:3000/')
-    return res          
-@route('/post',method="POST")
-def post():
-    data = { "post ok" }
-    res = HTTPResponse(status=200, body=json.dumps(data))
-    res.set_header('Content-Type', 'application/json')
-    res.set_header('Access-Control-Allow-Origin', '*')
-    return res
+app = bottle.default_app()
 
-run(host='localhost', port=8080, reloader=True, debug=True)
+if __name__ == '__main__':
+    run(host='localhost', port=8080, server='gunicorn', workers=4, reloader=True, debug=True)
